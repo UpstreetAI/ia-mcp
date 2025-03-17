@@ -29,7 +29,7 @@ import { VERSION } from "./common/version.js";
 
 const server = new Server(
   {
-    name: "github-mcp-server",
+    name: "ia-mcp",
     version: VERSION,
   },
   {
