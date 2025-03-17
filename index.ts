@@ -65,7 +65,7 @@ function formatGitHubError(error: GitHubError): string {
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
-      {
+      /* {
         name: "create_or_update_file",
         description: "Create or update a single file in a GitHub repository",
         inputSchema: zodToJsonSchema(files.CreateOrUpdateFileSchema),
@@ -109,91 +109,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: "create_branch",
         description: "Create a new branch in a GitHub repository",
         inputSchema: zodToJsonSchema(branches.CreateBranchSchema),
-      },
+      }, */
       {
-        name: "list_commits",
-        description: "Get list of commits of a branch in a GitHub repository",
-        inputSchema: zodToJsonSchema(commits.ListCommitsSchema)
-      },
-      {
-        name: "list_issues",
-        description: "List issues in a GitHub repository with filtering options",
-        inputSchema: zodToJsonSchema(issues.ListIssuesOptionsSchema)
-      },
-      {
-        name: "update_issue",
-        description: "Update an existing issue in a GitHub repository",
-        inputSchema: zodToJsonSchema(issues.UpdateIssueOptionsSchema)
-      },
-      {
-        name: "add_issue_comment",
-        description: "Add a comment to an existing issue",
-        inputSchema: zodToJsonSchema(issues.IssueCommentSchema)
-      },
-      {
-        name: "search_code",
-        description: "Search for code across GitHub repositories",
-        inputSchema: zodToJsonSchema(search.SearchCodeSchema),
-      },
-      {
-        name: "search_issues",
-        description: "Search for issues and pull requests across GitHub repositories",
-        inputSchema: zodToJsonSchema(search.SearchIssuesSchema),
-      },
-      {
-        name: "search_users",
-        description: "Search for users on GitHub",
-        inputSchema: zodToJsonSchema(search.SearchUsersSchema),
-      },
-      {
-        name: "get_issue",
-        description: "Get details of a specific issue in a GitHub repository.",
-        inputSchema: zodToJsonSchema(issues.GetIssueSchema)
-      },
-      {
-        name: "get_pull_request",
-        description: "Get details of a specific pull request",
-        inputSchema: zodToJsonSchema(pulls.GetPullRequestSchema)
-      },
-      {
-        name: "list_pull_requests",
-        description: "List and filter repository pull requests",
-        inputSchema: zodToJsonSchema(pulls.ListPullRequestsSchema)
-      },
-      {
-        name: "create_pull_request_review",
-        description: "Create a review on a pull request",
-        inputSchema: zodToJsonSchema(pulls.CreatePullRequestReviewSchema)
-      },
-      {
-        name: "merge_pull_request",
-        description: "Merge a pull request",
-        inputSchema: zodToJsonSchema(pulls.MergePullRequestSchema)
-      },
-      {
-        name: "get_pull_request_files",
-        description: "Get the list of files changed in a pull request",
-        inputSchema: zodToJsonSchema(pulls.GetPullRequestFilesSchema)
-      },
-      {
-        name: "get_pull_request_status",
-        description: "Get the combined status of all status checks for a pull request",
-        inputSchema: zodToJsonSchema(pulls.GetPullRequestStatusSchema)
-      },
-      {
-        name: "update_pull_request_branch",
-        description: "Update a pull request branch with the latest changes from the base branch",
-        inputSchema: zodToJsonSchema(pulls.UpdatePullRequestBranchSchema)
-      },
-      {
-        name: "get_pull_request_comments",
-        description: "Get the review comments on a pull request",
-        inputSchema: zodToJsonSchema(pulls.GetPullRequestCommentsSchema)
-      },
-      {
-        name: "get_pull_request_reviews",
-        description: "Get the reviews on a pull request",
-        inputSchema: zodToJsonSchema(pulls.GetPullRequestReviewsSchema)
+        name: "create_agent",
+        description: "Create a new agent on Illegal Agents platform",
+        inputSchema: zodToJsonSchema(z.object({
+          characterJson: z.record(z.any()).optional(),
+          envs: z.array(z.object({
+            key: z.string(),
+            parameters: z.record(z.any())
+          })).optional(),
+          templateOriginId: z.string().optional(),
+          agentImage: z.string().optional()
+        }))
       }
     ],
   };
@@ -205,8 +133,46 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       throw new Error("Arguments are required");
     }
 
+    const IA_API_ENDPOINT = process.env.IA_API_ENDPOINT || "https://dev.illegalagents.ai";
+    const IA_API_KEY = process.env.IA_API_KEY;
+
     switch (request.params.name) {
-      case "fork_repository": {
+      case "create_agent": {
+        const args = z.object({
+          characterJson: z.record(z.any()).optional(),
+          envs: z.array(z.object({
+            key: z.string(),
+            parameters: z.record(z.any())
+          })).optional(),
+          templateOriginId: z.string().optional(),
+          agentImage: z.string().optional()
+        }).parse(request.params.arguments);
+
+        if (!IA_API_KEY) {
+          throw new Error("IA_API_KEY environment variable is not set");
+        }
+
+        const response = await fetch(`${IA_API_ENDPOINT}/api/eliza/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${IA_API_KEY}`
+          },
+          body: JSON.stringify(args)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to create agent: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
+      /* case "fork_repository": {
         const args = repository.ForkRepositorySchema.parse(request.params.arguments);
         const fork = await repository.forkRepository(args.owner, args.repo, args.organization);
         return {
@@ -454,7 +420,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return {
           content: [{ type: "text", text: JSON.stringify(reviews, null, 2) }],
         };
-      }
+      } */
 
       default:
         throw new Error(`Unknown tool: ${request.params.name}`);
