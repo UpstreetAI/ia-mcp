@@ -112,15 +112,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       }, */
       {
         name: "create_agent",
-        description: "Create a new agent on Illegal Agents platform",
+        description: "Create a new agent on Illegal Agents",
         inputSchema: zodToJsonSchema(z.object({
           characterJson: z.record(z.any()).optional(),
           envs: z.array(z.object({
             key: z.string(),
             parameters: z.record(z.any())
           })).optional(),
-          templateOriginId: z.string().optional(),
-          agentImage: z.string().optional()
+          // templateOriginId: z.string().optional(),
+          // agentImage: z.string().optional(),
         }))
       }
     ],
@@ -144,8 +144,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             key: z.string(),
             parameters: z.record(z.any())
           })).optional(),
-          templateOriginId: z.string().optional(),
-          agentImage: z.string().optional()
+          // templateOriginId: z.string().optional(),
+          // agentImage: z.string().optional(),
         }).parse(request.params.arguments);
 
         if (!IA_API_KEY) {
